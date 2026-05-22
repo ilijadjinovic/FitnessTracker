@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Trening"/>
+<meta name="description" content="Aplikacija za praćenje trening aktivnosti"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<title>Trening Tracker</title>
+<style>
+:root{
+  --bg:#0f172a;--bg2:#1e293b;--bg3:#334155;
+  --card:#1e293b;--card2:#263348;
+  --accent:#3b82f6;--accent2:#1d4ed8;--accent-light:#93c5fd;
+  --green:#22c55e;--green-bg:#052e16;
+  --amber:#f59e0b;--amber-bg:#1c1003;
+  --red:#ef4444;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --border:#334155;--border2:#475569;
+  --radius:12px;--radius-sm:8px;--radius-xs:6px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.5}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.statusbar{height:var(--safe-top);background:var(--bg);flex-shrink:0}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.content::-webkit-scrollbar{display:none}
+
+/* NAV */
+.nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);padding-bottom:var(--safe-bottom);flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;cursor:pointer;color:var(--text3);font-size:11px;font-weight:500;transition:color .15s;border:none;background:none;-webkit-tap-highlight-color:transparent}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.active{color:var(--accent)}
+
+/* SCREENS */
+.screen{display:none;padding:16px;min-height:100%}
+.screen.active{display:block}
+
+/* TYPOGRAPHY */
+h1{font-size:22px;font-weight:700;letter-spacing:-.3px}
+h2{font-size:17px;font-weight:600;margin-bottom:14px}
+h3{font-size:15px;font-weight:600}
+.muted{color:var(--text2)}
+.small{font-size:13px}
+.tiny{font-size:11px}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid var(--border)}
+.card-label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+
+/* METRIC GRID */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.metric{background:var(--card);border-radius:var(--radius);padding:14px;border:1px solid var(--border)}
+.metric-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:3px}
+.metric-val.blue{color:var(--accent-light)}
+.metric-val.green{color:var(--green)}
+.metric-label{font-size:12px;color:var(--text2)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--accent-light)}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-amber{background:rgba(245,158,11,.15);color:var(--amber)}
+.badge-gray{background:var(--bg3);color:var(--text2)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .1s;width:100%;margin-top:10px}
+.btn:active{opacity:.8;transform:scale(.98)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:var(--bg3);color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.2);color:var(--red)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:var(--radius-xs);width:auto;margin-top:0}
+.btn-icon{width:34px;height:34px;padding:0;border-radius:var(--radius-xs);background:var(--bg3);color:var(--text2);font-size:16px;margin-top:0}
+
+/* TOGGLE */
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--bg3);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{left:23px}
+
+/* INPUTS */
+input,select,textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-xs);color:var(--text);padding:10px 12px;font-size:14px;font-family:inherit;width:100%;outline:none;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input[type=time]{width:100px}
+select{cursor:pointer}
+textarea{resize:none;line-height:1.5}
+
+/* DAY ROWS */
+.day-row{padding:12px 0;border-bottom:1px solid var(--border)}
+.day-row:last-child{border-bottom:none}
+.day-top{display:flex;align-items:center;gap:10px}
+.day-name{width:34px;font-weight:600;font-size:14px}
+.day-time{margin-left:4px}
+.day-parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.part-chip{font-size:12px;font-weight:500;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s}
+.part-chip.sel{background:rgba(59,130,246,.2);color:var(--accent-light);border-color:rgba(59,130,246,.4)}
+
+/* EXERCISE BLOCK */
+.ex-block{background:var(--card2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:10px;overflow:hidden}
+.ex-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.sets-head{display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:6px;padding:6px 14px 2px;font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--text3);text-transform:uppercase}
+.set-row{display:grid;grid-template-columns:28px 1fr 1fr 32px;gap:6px;align-items:center;padding:8px 14px;border-top:1px solid rgba(255,255,255,.04)}
+.set-num{font-size:12px;color:var(--text3);text-align:center;font-weight:600}
+.num-ctrl{display:flex;align-items:center;gap:6px}
+.num-ctrl button{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.num-ctrl button:active{background:var(--border2)}
+.num-val{min-width:32px;text-align:center;font-size:14px;font-weight:600}
+
+/* HISTORY */
+.hist-card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid var(--border)}
+.hist-date{font-size:12px;color:var(--text3);margin-bottom:4px}
+.hist-title{font-size:16px;font-weight:600;margin-bottom:8px}
+.hist-sets{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.set-pill{background:var(--bg3);border-radius:var(--radius-xs);padding:3px 8px;font-size:11px;color:var(--text2)}
+
+/* STATS */
+.progress-row{margin-bottom:12px}
+.progress-label{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px}
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .4s}
+
+/* MODAL OVERLAY */
+.modal-wrap{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;flex-direction:column;justify-content:flex-end}
+.modal-wrap.hidden{display:none}
+.modal{background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;max-height:90dvh;overflow-y:auto;padding:20px 16px;padding-bottom:calc(20px + var(--safe-bottom))}
+.modal-handle{width:36px;height:4px;background:var(--bg3);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
+
+/* CHART WRAP */
+.chart-wrap{position:relative;width:100%;height:180px;margin-top:8px}
+
+/* CAL LINK */
+.cal-link{display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:var(--radius-sm);color:var(--accent-light);font-size:13px;font-weight:500;text-decoration:none;margin-top:10px}
+
+/* ADD ROW */
+.add-row{display:flex;gap:8px;margin-top:10px}
+.add-row input{flex:1}
+.add-row button{flex-shrink:0;padding:10px 14px;background:var(--accent);border:none;border-radius:var(--radius-xs);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px 16px;color:var(--text3);font-size:14px;line-height:1.8}
+
+/* TOAST */
+.toast{position:absolute;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:20px;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:12px 0}
+
+/* LIST ITEM */
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.list-item:last-child{border-bottom:none}
+.list-item-del{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;font-size:18px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="statusbar"></div>
+  <div class="content" id="main-content">
+    <div class="screen active" id="screen-home"></div>
+    <div class="screen" id="screen-schedule"></div>
+    <div class="screen" id="screen-history"></div>
+    <div class="screen" id="screen-stats"></div>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" data-tab="home" onclick="switchTab('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Početna
+    </button>
+    <button class="nav-item" data-tab="schedule" onclick="switchTab('schedule')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Raspored
+    </button>
+    <button class="nav-item" data-tab="history" onclick="switchTab('history')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Istorija
+    </button>
+    <button class="nav-item" data-tab="stats" onclick="switchTab('stats')">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Statistika
+    </button>
+  </nav>
+  <div class="modal-wrap hidden" id="log-modal-wrap">
+    <div class="modal" id="log-modal"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DAYS=['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
+const BODY_PARTS=['Grudi','Leđa','Ramena','Bicepsi','Tricepsi','Noge','Trbuh','Kardio','Celo telo'];
+const DEFAULT_EXERCISES=[
+  {id:'e1',name:'Bench press',part:'Grudi'},
+  {id:'e2',name:'Kosi bench press',part:'Grudi'},
+  {id:'e3',name:'Čučnjevi',part:'Noge'},
+  {id:'e4',name:'Mrtvo dizanje',part:'Leđa'},
+  {id:'e5',name:'Potisak iznad glave',part:'Ramena'},
+  {id:'e6',name:'Biceps curl',part:'Bicepsi'},
+  {id:'e7',name:'Triceps extension',part:'Tricepsi'},
+  {id:'e8',name:'Plank',part:'Trbuh'},
+  {id:'e9',name:'Trčanje',part:'Kardio'},
+  {id:'e10',name:'Veslanje',part:'Leđa'},
+  {id:'e11',name:'Leg press',part:'Noge'},
+  {id:'e12',name:'Dips',part:'Tricepsi'},
+  {id:'e13',name:'Lateral raises',part:'Ramena'},
+  {id:'e14',name:'Pull-up',part:'Leđa'},
+  {id:'e15',name:'Sklekovi',part:'Grudi'}
+];
+
+let state={
+  schedule:[
+    {day:0,active:true,time:'07:00',parts:['Grudi','Tricepsi']},
+    {day:1,active:false,time:'07:00',parts:[]},
+    {day:2,active:true,time:'07:00',parts:['Leđa','Bicepsi']},
+    {day:3,active:false,time:'07:00',parts:[]},
+    {day:4,active:true,time:'07:00',parts:['Noge','Trbuh']},
+    {day:5,active:true,time:'10:00',parts:['Ramena']},
+    {day:6,active:false,time:'07:00',parts:[]}
+  ],
+  exercises:[...DEFAULT_EXERCISES],
+  workouts:[
+    {id:'w1',date:'2025-05-19',day:0,parts:['Grudi','Tricepsi'],note:'Odličan trening!',
+      exercises:[
+        {id:'e1',name:'Bench press',sets:[{reps:12,weight:80},{reps:12,weight:80},{reps:10,weight:85},{reps:8,weight:90}]},
+        {id:'e12',name:'Dips',sets:[{reps:12,weight:0},{reps:12,weight:0},{reps:12,weight:0},{reps:10,weight:0}]}
+      ]},
+    {id:'w2',date:'2025-05-21',day:2,parts:['Leđa','Bicepsi'],note:'',
+      exercises:[
+        {id:'e4',name:'Mrtvo dizanje',sets:[{reps:12,weight:100},{reps:12,weight:105},{reps:10,weight:110},{reps:8,weight:115}]},
+        {id:'e6',name:'Biceps curl',sets:[{reps:12,weight:20},{reps:12,weight:20},{reps:12,weight:22},{reps:10,weight:24}]}
+      ]}
+  ],
+  activeLog:null
+};
+
+function save(){try{localStorage.setItem('trening_pwa_v2',JSON.stringify(state))}catch(e){}}
+function load(){try{const d=localStorage.getItem('trening_pwa_v2');if(d)state=JSON.parse(d)}catch(e){}}
+load();
+
+let currentTab='home';
+let pChart=null,wChart=null;
+
+function switchTab(t){
+  currentTab=t;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+t).classList.add('active');
+  document.querySelector('[data-tab='+t+']').classList.add('active');
+  document.getElementById('main-content').scrollTop=0;
+  if(t==='home') renderHome();
+  else if(t==='schedule') renderSchedule();
+  else if(t==='history') renderHistory();
+  else if(t==='stats') renderStats();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function getTodayIdx(){return(new Date().getDay()+6)%7}
+
+/* ===== HOME ===== */
+function renderHome(){
+  const ti=getTodayIdx();
+  const ts=state.schedule[ti];
+  const todayDone=state.workouts.filter(w=>w.day===ti&&w.date===new Date().toISOString().split('T')[0]);
+  const last=state.workouts.length?state.workouts[state.workouts.length-1]:null;
+  const total=state.workouts.length;
+  const sets=state.workouts.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.length,0),0);
+
+  let h=`<h1 style="margin-bottom:16px">Trening</h1>`;
+  h+=`<div class="metric-grid">
+    <div class="metric"><div class="metric-val blue">${total}</div><div class="metric-label">Ukupno treninga</div></div>
+    <div class="metric"><div class="metric-val green">${sets}</div><div class="metric-label">Ukupno serija</div></div>
+  </div>`;
+
+  h+=`<div class="card"><div class="card-label">Danas — ${DAYS[ti]}</div>`;
+  if(ts.active){
+    h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span style="font-weight:600;color:var(--accent-light)">${ts.time}</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">`;
+    ts.parts.forEach(p=>{h+=`<span class="badge badge-blue">${p}</span>`;});
+    h+=`</div>`;
+    if(todayDone.length===0){
+      h+=`<button class="btn btn-primary" onclick="openLogModal(${ti})">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Zapiši trening
+      </button>`;
+    } else {
+      h+=`<div class="badge badge-green" style="font-size:14px;padding:8px 14px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Trening upisan danas
+      </div>`;
+    }
+  } else {
+    h+=`<div class="empty">Danas nije dan treninga 💤<br><span class="muted small">Odmori se i spremi se za sutra.</span></div>`;
+  }
+  h+=`</div>`;
+
+  if(last){
+    h+=`<div class="card"><div class="card-label">Poslednji trening</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <span class="h3">${last.parts.join(', ')}</span>
+        <span class="tiny muted">${last.date}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">`;
+    last.parts.forEach(p=>{h+=`<span class="badge badge-amber">${p}</span>`;});
+    h+=`</div>`;
+    last.exercises.forEach(ex=>{
+      const maxW=Math.max(...ex.sets.map(s=>s.weight));
+      h+=`<div class="list-item">
+        <span class="small">${ex.name}</span>
+        <span class="small muted">${ex.sets.length} ser · ${maxW>0?maxW+'kg max':ex.sets.reduce((a,s)=>a+s.reps,0)+' rep ukupno'}</span>
+      </div>`;
+    });
+    if(last.note) h+=`<div style="margin-top:10px;font-size:13px;color:var(--text2);font-style:italic">"${last.note}"</div>`;
+    h+=`</div>`;
+  }
+
+  document.getElementById('screen-home').innerHTML=h;
+}
+
+/* ===== LOG MODAL ===== */
+function openLogModal(dayIdx){
+  const sched=state.schedule[dayIdx];
+  const related=state.exercises.filter(e=>sched.parts.includes(e.part));
+  state.activeLog={
+    dayIdx,parts:sched.parts,note:'',
+    exercises:related.map(e=>({
+      id:e.id,name:e.name,
+      sets:[{reps:12,weight:0},{reps:12,weight:0},{reps:12,weight:0},{reps:12,weight:0}]
+    }))
+  };
+  renderLogModal();
+  document.getElementById('log-modal-wrap').classList.remove('hidden');
+}
+
+function closeLogModal(){
+  document.getElementById('log-modal-wrap').classList.add('hidden');
+  state.activeLog=null;
+}
+
+function renderLogModal(){
+  if(!state.activeLog) return;
+  const log=state.activeLog;
+  let h=`<div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal-title" style="margin-bottom:0">Beleženje treninga</div>
+      <button onclick="closeLogModal()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">`;
+  log.parts.forEach(p=>{h+=`<span class="badge badge-blue">${p}</span>`;});
+  h+=`</div>`;
+
+  log.exercises.forEach((ex,ei)=>{
+    h+=`<div class="ex-block">
+      <div class="ex-header">
+        <span style="font-weight:600">${ex.name}</span>
+        <button onclick="addSet(${ei})" style="background:rgba(59,130,246,.15);border:none;color:var(--accent-light);cursor:pointer;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600">+ Serija</button>
+      </div>
+      <div class="sets-head"><span style="text-align:center">#</span><span style="text-align:center">Pon.</span><span style="text-align:center">Kg</span><span></span></div>`;
+    ex.sets.forEach((s,si)=>{
+      h+=`<div class="set-row">
+        <span class="set-num">${si+1}</span>
+        <div class="num-ctrl">
+          <button onclick="chg(${ei},${si},'reps',-1)">−</button>
+          <span class="num-val">${s.reps}</span>
+          <button onclick="chg(${ei},${si},'reps',1)">+</button>
+        </div>
+        <div class="num-ctrl">
+          <button onclick="chg(${ei},${si},'weight',-5)">−</button>
+          <span class="num-val">${s.weight}</span>
+          <button onclick="chg(${ei},${si},'weight',5)">+</button>
+        </div>
+        <button onclick="rmvSet(${ei},${si})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0;text-align:center">×</button>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+
+  h+=`<div style="margin-top:12px">
+    <div class="card-label">Napomena</div>
+    <textarea rows="2" placeholder="Kako je prošlo?" onchange="state.activeLog.note=this.value" style="margin-top:6px">${log.note||''}</textarea>
+  </div>
+  <button class="btn btn-primary" style="margin-top:16px" onclick="saveWorkout()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Sačuvaj trening
+  </button>
+  <button class="btn btn-secondary" onclick="closeLogModal()">Otkaži</button>`;
+
+  document.getElementById('log-modal').innerHTML=h;
+}
+
+function chg(ei,si,f,d){
+  if(!state.activeLog)return;
+  state.activeLog.exercises[ei].sets[si][f]=Math.max(0,state.activeLog.exercises[ei].sets[si][f]+d);
+  renderLogModal();
+}
+function addSet(ei){
+  if(!state.activeLog)return;
+  state.activeLog.exercises[ei].sets.push({reps:12,weight:0});
+  renderLogModal();
+}
+function rmvSet(ei,si){
+  if(!state.activeLog)return;
+  if(state.activeLog.exercises[ei].sets.length>1)
+    state.activeLog.exercises[ei].sets.splice(si,1);
+  renderLogModal();
+}
+function saveWorkout(){
+  if(!state.activeLog)return;
+  const today=new Date().toISOString().split('T')[0];
+  state.workouts.push({
+    id:'w'+Date.now(),date:today,
+    day:state.activeLog.dayIdx,
+    parts:state.activeLog.parts,
+    note:state.activeLog.note,
+    exercises:JSON.parse(JSON.stringify(state.activeLog.exercises))
+  });
+  state.activeLog=null;
+  save();
+  document.getElementById('log-modal-wrap').classList.add('hidden');
+  showToast('✓ Trening sačuvan!');
+  renderHome();
+}
+
+/* ===== SCHEDULE ===== */
+function renderSchedule(){
+  let h=`<h2>Raspored</h2><div class="card">`;
+  state.schedule.forEach((s,i)=>{
+    h+=`<div class="day-row">
+      <div class="day-top">
+        <span class="day-name">${DAYS[i]}</span>
+        <button class="toggle ${s.active?'on':''}" onclick="toggleDay(${i})" aria-label="${DAYS[i]}"></button>
+        ${s.active?`<input type="time" value="${s.time}" onchange="setTime(${i},this.value)" class="day-time"/>`:'<span class="small muted" style="margin-left:6px">slobodan</span>'}
+      </div>`;
+    if(s.active){
+      h+=`<div class="day-parts">`;
+      BODY_PARTS.forEach(p=>{
+        h+=`<button class="part-chip ${s.parts.includes(p)?'sel':''}" onclick="togglePart(${i},'${p}')">${p}</button>`;
+      });
+      h+=`</div>`;
+    }
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+
+  const activeDays=state.schedule.map((s,i)=>s.active?i:-1).filter(i=>i>=0);
+  if(activeDays.length>0){
+    const bydayMap=['MO','TU','WE','TH','FR','SA','SU'];
+    const bydays=activeDays.map(i=>bydayMap[i]).join(',');
+    const fa=state.schedule.find(s=>s.active);
+    const t=fa?fa.time.replace(':',''):'0700';
+    const h2=fa?String(parseInt(fa.time.split(':')[0])+1).padStart(2,'0')+fa.time.split(':')[1]:'0800';
+    const now=new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const ds=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}T${t}00`;
+    const de=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}T${h2}00`;
+    const calUrl=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=Trening&dates=${ds}/${de}&recur=RRULE:FREQ=WEEKLY;BYDAY=${bydays}&details=Trening+po+rasporedu`;
+    h+=`<a class="cal-link" href="${calUrl}" target="_blank">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Dodaj podsetnik u Google Calendar (nedeljno)
+    </a>`;
+  }
+
+  h+=`<div class="card" style="margin-top:14px">
+    <div class="card-label">Moje vežbe</div>`;
+  state.exercises.forEach((e,i)=>{
+    h+=`<div class="list-item">
+      <div>
+        <div class="small" style="font-weight:500">${e.name}</div>
+        <div class="tiny muted">${e.part}</div>
+      </div>
+      ${i>=DEFAULT_EXERCISES.length?`<button class="list-item-del" onclick="rmvEx(${i})">×</button>`:'<span class="tiny muted">default</span>'}
+    </div>`;
+  });
+  h+=`<div class="add-row" style="margin-top:12px">
+    <input type="text" id="new-ex-input" placeholder="Naziv vežbe..." />
+    <button onclick="addEx()">Dodaj</button>
+  </div></div>`;
+
+  document.getElementById('screen-schedule').innerHTML=h;
+}
+
+function toggleDay(i){state.schedule[i].active=!state.schedule[i].active;save();renderSchedule();}
+function setTime(i,v){state.schedule[i].time=v;save();}
+function togglePart(i,p){
+  const parts=state.schedule[i].parts;
+  const idx=parts.indexOf(p);
+  if(idx>=0)parts.splice(idx,1);else parts.push(p);
+  save();renderSchedule();
+}
+function addEx(){
+  const inp=document.getElementById('new-ex-input');
+  const name=inp.value.trim();
+  if(!name)return;
+  state.exercises.push({id:'c'+Date.now(),name,part:'Celo telo'});
+  inp.value='';save();renderSchedule();
+  showToast('Vežba dodana');
+}
+function rmvEx(i){
+  if(confirm('Obrisati vežbu "'+state.exercises[i].name+'"?')){
+    state.exercises.splice(i,1);save();renderSchedule();
+  }
+}
+
+/* ===== HISTORY ===== */
+function renderHistory(){
+  let h=`<h2>Istorija treninga</h2>`;
+  if(!state.workouts.length){
+    h+=`<div class="empty">Još nema upisanih treninga.<br>Pritisni "Zapiši trening" na početnoj.</div>`;
+  } else {
+    [...state.workouts].reverse().forEach(w=>{
+      h+=`<div class="hist-card">
+        <div class="hist-date">${w.date} — ${DAYS[w.day]}</div>
+        <div class="hist-title">${w.parts.join(', ')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">`;
+      w.parts.forEach(p=>{h+=`<span class="badge badge-amber">${p}</span>`;});
+      h+=`</div>`;
+      w.exercises.forEach(ex=>{
+        const maxW=Math.max(...ex.sets.map(s=>s.weight));
+        h+=`<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-weight:600;font-size:14px">${ex.name}</span>
+            <span class="small muted">${ex.sets.length} ser · ${maxW>0?maxW+'kg max':''}</span>
+          </div>
+          <div class="hist-sets">`;
+        ex.sets.forEach((s,si)=>{
+          h+=`<span class="set-pill">${si+1}: ${s.reps}×${s.weight}kg</span>`;
+        });
+        h+=`</div></div>`;
+      });
+      if(w.note) h+=`<div style="font-size:13px;color:var(--text2);font-style:italic;margin-top:4px">"${w.note}"</div>`;
+      h+=`</div>`;
+    });
+  }
+  document.getElementById('screen-history').innerHTML=h;
+}
+
+/* ===== STATS ===== */
+function renderStats(){
+  const totalW=state.workouts.length;
+  const totalS=state.workouts.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.length,0),0);
+  const totalVol=state.workouts.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.reduce((c,s)=>c+s.reps*s.weight,0),0),0);
+  const activeDays=state.schedule.filter(s=>s.active).length;
+
+  let h=`<h2>Statistika</h2>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-val blue">${totalW}</div><div class="metric-label">Treninzi</div></div>
+    <div class="metric"><div class="metric-val green">${totalS}</div><div class="metric-label">Serije</div></div>
+    <div class="metric"><div class="metric-val" style="font-size:22px">${(totalVol/1000).toFixed(1)}t</div><div class="metric-label">Ukupni volumen</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--amber)">${activeDays}</div><div class="metric-label">Dani/nedelja</div></div>
+  </div>`;
+
+  const partCount={};
+  state.workouts.forEach(w=>w.parts.forEach(p=>{partCount[p]=(partCount[p]||0)+1;}));
+  const maxC=Math.max(1,...Object.values(partCount));
+  if(Object.keys(partCount).length){
+    h+=`<div class="card"><div class="card-label">Po delovima tela</div>`;
+    Object.entries(partCount).sort((a,b)=>b[1]-a[1]).forEach(([p,c])=>{
+      h+=`<div class="progress-row">
+        <div class="progress-label"><span>${p}</span><span class="muted">${c}×</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(c/maxC*100)}%"></div></div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  const allEx=[...new Set(state.workouts.flatMap(w=>w.exercises.map(e=>e.name)))];
+  if(allEx.length){
+    h+=`<div class="card"><div class="card-label">Progres težina</div>
+      <select id="ex-sel" onchange="updateProgressChart()" style="margin-bottom:10px">`;
+    allEx.forEach(n=>{h+=`<option value="${n}">${n}</option>`;});
+    h+=`</select><div class="chart-wrap"><canvas id="pChart" role="img" aria-label="Progres težina">Progres težina po treninzima.</canvas></div></div>`;
+  }
+
+  h+=`<div class="card"><div class="card-label">Volumen po nedelji (8 ned.)</div>
+    <div class="chart-wrap"><canvas id="wChart" role="img" aria-label="Sedmični volumen">Volumen po sedmicama.</canvas></div></div>`;
+
+  document.getElementById('screen-stats').innerHTML=h;
+
+  setTimeout(()=>{
+    updateProgressChart();
+    renderWeekChart();
+  },50);
+}
+
+function updateProgressChart(){
+  const name=document.getElementById('ex-sel')?.value;
+  if(!name)return;
+  const pts=[];
+  state.workouts.forEach(w=>{
+    w.exercises.filter(e=>e.name===name).forEach(e=>{
+      pts.push({date:w.date,val:Math.max(...e.sets.map(s=>s.weight))});
+    });
+  });
+  pts.sort((a,b)=>a.date.localeCompare(b.date));
+  const ctx=document.getElementById('pChart');
+  if(!ctx)return;
+  if(pChart){pChart.destroy();pChart=null;}
+  pChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:pts.map(p=>p.date.slice(5)),
+      datasets:[{
+        label:'Max kg',data:pts.map(p=>p.val),
+        borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',
+        tension:.3,fill:true,pointRadius:5,pointBackgroundColor:'#3b82f6'
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(255,255,255,.05)'}},
+        y:{ticks:{color:'#64748b',font:{size:11},callback:v=>v+'kg'},grid:{color:'rgba(255,255,255,.05)'}}
+      }
+    }
+  });
+}
+
+function renderWeekChart(){
+  const now=new Date();
+  const weeks=[];
+  for(let i=7;i>=0;i--){
+    const ref=new Date(now);ref.setDate(ref.getDate()-i*7);
+    const dow=ref.getDay();
+    const start=new Date(ref);start.setDate(ref.getDate()-(dow===0?6:dow-1));start.setHours(0,0,0,0);
+    const end=new Date(start);end.setDate(start.getDate()+6);end.setHours(23,59,59,999);
+    const label=`${start.getDate()}.${start.getMonth()+1}`;
+    const vol=state.workouts.filter(w=>{const wd=new Date(w.date);return wd>=start&&wd<=end;})
+      .reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+e.sets.reduce((c,s)=>c+s.reps*s.weight,0),0),0);
+    weeks.push({label,vol});
+  }
+  const ctx=document.getElementById('wChart');
+  if(!ctx)return;
+  if(wChart){wChart.destroy();wChart=null;}
+  wChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:weeks.map(w=>w.label),
+      datasets:[{
+        label:'Volumen (kg)',data:weeks.map(w=>w.vol),
+        backgroundColor:'rgba(59,130,246,.5)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:11},autoSkip:false,maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
+        y:{ticks:{color:'#64748b',font:{size:11},callback:v=>v+'kg'},grid:{color:'rgba(255,255,255,.05)'}}
+      }
+    }
+  });
+}
+
+/* ===== INIT ===== */
+renderHome();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
