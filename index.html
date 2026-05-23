@@ -521,6 +521,20 @@ function renderSchedule(){
   }
 
   h+=`<div class="card" style="margin-top:14px">
+    <div class="card-label">Backup podataka</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="exportData()" style="display:flex;align-items:center;gap:8px;padding:11px 14px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:var(--radius-sm);color:var(--green);font-size:13px;font-weight:600;cursor:pointer;width:100%">
+        ⬇️ Snimi podatke na računar
+      </button>
+      <label style="display:flex;align-items:center;gap:8px;padding:11px 14px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:var(--radius-sm);color:var(--accent-light);font-size:13px;font-weight:600;cursor:pointer;width:100%">
+        ⬆️ Učitaj podatke sa računara
+        <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
+      </label>
+      <div style="font-size:11px;color:var(--text3);line-height:1.6">Snimi podatke kao fajl na HDD. Učitaj isti fajl na drugom browseru ili računaru da vratiš sve treninge i podešavanja.</div>
+    </div>
+  </div>`;
+
+  h+=`<div class="card" style="margin-top:14px">
     <div class="card-label">Moje vežbe</div>`;
   state.exercises.forEach((e,i)=>{
     h+=`<div class="list-item">
