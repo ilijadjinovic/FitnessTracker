@@ -736,6 +736,60 @@ function renderWeekChart(){
   });
 }
 
+/* ===== BACKUP / RESTORE ===== */
+function exportData(){
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: state
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().split('T')[0];
+  a.href     = url;
+  a.download = `trening-backup-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ Podaci snimljeni!');
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const payload = JSON.parse(e.target.result);
+      // Support both wrapped format and raw state
+      const imported = payload.data || payload;
+      // Validate basic structure
+      if(!imported.schedule || !imported.exercises || !imported.workouts){
+        alert('Fajl nije validan backup fajl. Proveri da li si izabrao pravi .json fajl.');
+        return;
+      }
+      if(!confirm(`Učitati podatke iz fajla?\n\nOvo će zameniti sve trenutne podatke sa:\n• ${imported.workouts.length} treninga\n• ${imported.exercises.length} vežbi\n• ${imported.schedule.filter(s=>s.active).length} aktivnih dana`)){
+        event.target.value = '';
+        return;
+      }
+      state = imported;
+      save();
+      // Refresh current tab
+      if(currentTab==='home') renderHome();
+      else if(currentTab==='schedule') renderSchedule();
+      else if(currentTab==='history') renderHistory();
+      else if(currentTab==='stats') renderStats();
+      showToast('✓ Podaci učitani!');
+    } catch(err) {
+      alert('Greška pri učitavanju fajla. Proveri da li je fajl ispravan JSON.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
 /* ===== INIT ===== */
 renderHome();
 
