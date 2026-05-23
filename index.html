@@ -574,6 +574,13 @@ function rmvEx(i){
 }
 
 /* ===== HISTORY ===== */
+function deleteWorkout(id){
+  if(!confirm('Obrisati ovaj trening?')) return;
+  state.workouts=state.workouts.filter(w=>w.id!==id);
+  save();renderHistory();
+  showToast('Trening obrisan');
+}
+
 function renderHistory(){
   let h=`<h2>Istorija treninga</h2>`;
   if(!state.workouts.length){
@@ -581,9 +588,14 @@ function renderHistory(){
   } else {
     [...state.workouts].reverse().forEach(w=>{
       h+=`<div class="hist-card">
-        <div class="hist-date">${w.date} — ${DAYS[w.day]}</div>
-        <div class="hist-title">${w.parts.join(', ')}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">`;
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+          <div>
+            <div class="hist-date">${w.date} — ${DAYS[w.day]}</div>
+            <div class="hist-title" style="margin-bottom:0">${w.parts.join(', ')}</div>
+          </div>
+          <button onclick="deleteWorkout('${w.id}')" style="background:rgba(239,68,68,.15);border:none;color:#ef4444;cursor:pointer;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;flex-shrink:0;margin-left:8px">🗑 Obriši</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0">`;
       w.parts.forEach(p=>{h+=`<span class="badge badge-amber">${p}</span>`;});
       h+=`</div>`;
       w.exercises.forEach(ex=>{
