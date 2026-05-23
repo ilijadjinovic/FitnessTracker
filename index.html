@@ -356,6 +356,9 @@ function closeLogModal(){
 function renderLogModal(){
   if(!state.activeLog) return;
   const log=state.activeLog;
+  const logExIds=log.exercises.map(e=>e.id);
+  const available=state.exercises.filter(e=>!logExIds.includes(e.id));
+
   let h=`<div class="modal-handle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div class="modal-title" style="margin-bottom:0">Beleženje treninga</div>
@@ -365,11 +368,18 @@ function renderLogModal(){
   log.parts.forEach(p=>{h+=`<span class="badge badge-blue">${p}</span>`;});
   h+=`</div>`;
 
+  if(log.exercises.length===0){
+    h+=`<div style="text-align:center;padding:20px;color:var(--text3);font-size:14px">Nema vežbi. Dodaj vežbu ispod.</div>`;
+  }
+
   log.exercises.forEach((ex,ei)=>{
     h+=`<div class="ex-block">
       <div class="ex-header">
         <span style="font-weight:600">${ex.name}</span>
-        <button onclick="addSet(${ei})" style="background:rgba(59,130,246,.15);border:none;color:var(--accent-light);cursor:pointer;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600">+ Serija</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button onclick="addSet(${ei})" style="background:rgba(59,130,246,.15);border:none;color:var(--accent-light);cursor:pointer;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600">+ Serija</button>
+          <button onclick="rmvExercise(${ei})" style="background:rgba(239,68,68,.15);border:none;color:#ef4444;cursor:pointer;padding:5px 8px;border-radius:6px;font-size:12px;font-weight:600" title="Obriši vežbu">🗑</button>
+        </div>
       </div>
       <div class="sets-head"><span style="text-align:center">#</span><span style="text-align:center">Pon.</span><span style="text-align:center">Kg</span><span></span></div>`;
     ex.sets.forEach((s,si)=>{
@@ -391,6 +401,21 @@ function renderLogModal(){
     h+=`</div>`;
   });
 
+  // Add exercise from list
+  if(available.length>0){
+    h+=`<div style="margin-top:12px;background:var(--bg3);border-radius:var(--radius-sm);padding:12px">
+      <div class="card-label" style="margin-bottom:8px">Dodaj vežbu</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="add-ex-sel" style="flex:1">`;
+    available.forEach(e=>{
+      h+=`<option value="${e.id}">${e.name} (${e.part})</option>`;
+    });
+    h+=`</select>
+        <button onclick="addExerciseToLog()" style="background:var(--accent);border:none;color:#fff;padding:10px 14px;border-radius:var(--radius-xs);font-weight:600;cursor:pointer;font-size:13px;white-space:nowrap">+ Dodaj</button>
+      </div>
+    </div>`;
+  }
+
   h+=`<div style="margin-top:12px">
     <div class="card-label">Napomena</div>
     <textarea rows="2" placeholder="Kako je prošlo?" onchange="state.activeLog.note=this.value" style="margin-top:6px">${log.note||''}</textarea>
@@ -404,6 +429,25 @@ function renderLogModal(){
   document.getElementById('log-modal').innerHTML=h;
 }
 
+function rmvExercise(ei){
+  if(!state.activeLog)return;
+  state.activeLog.exercises.splice(ei,1);
+  renderLogModal();
+}
+function addExerciseToLog(){
+  if(!state.activeLog)return;
+  const sel=document.getElementById('add-ex-sel');
+  if(!sel)return;
+  const exId=sel.value;
+  const ex=state.exercises.find(e=>e.id===exId);
+  if(!ex)return;
+  state.activeLog.exercises.push({
+    id:ex.id,name:ex.name,
+    sets:[{reps:12,weight:0},{reps:12,weight:0},{reps:12,weight:0},{reps:12,weight:0}]
+  });
+  renderLogModal();
+  showToast('Vežba dodana');
+}
 function chg(ei,si,f,d){
   if(!state.activeLog)return;
   state.activeLog.exercises[ei].sets[si][f]=Math.max(0,state.activeLog.exercises[ei].sets[si][f]+d);
