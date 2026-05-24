@@ -437,6 +437,7 @@ function renderSchedule(){
     h+=`</div>`;
   });
   h+=`</div>`;
+
   const activeDays=state.schedule.map((s,i)=>s.active?i:-1).filter(i=>i>=0);
   if(activeDays.length>0){
     const bm=['MO','TU','WE','TH','FR','SA','SU'];
@@ -450,6 +451,7 @@ function renderSchedule(){
     const calUrl=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=Trening&dates=${ds}/${de}&recur=RRULE:FREQ=WEEKLY;BYDAY=${bydays}&details=Trening+po+rasporedu`;
     h+=`<a class="cal-link" href="${calUrl}" target="_blank">📅 Dodaj u Google Calendar (nedeljno)</a>`;
   }
+
   h+=`<div class="card" style="margin-top:14px">
     <div class="card-label">Backup podataka</div>
     <button onclick="exportData()" class="btn btn-g" style="margin-top:0">⬇️ Snimi podatke na računar</button>
@@ -458,6 +460,7 @@ function renderSchedule(){
     </label>
     <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:8px">Snimi sve podatke kao JSON fajl. Učitaj na drugom uređaju ili browseru.</div>
   </div>`;
+
   h+=`<div class="card" style="margin-top:14px"><div class="card-label">Moje vežbe</div>`;
   state.exercises.forEach((e,i)=>{
     h+=`<div class="list-item">
@@ -471,6 +474,7 @@ function renderSchedule(){
     <div style="display:flex;flex-wrap:wrap;gap:6px" id="new-ex-parts">`;
   BODY_PARTS.forEach(p=>{h+=`<button class="part-chip" id="nxp-${p}" onclick="selNewExPart('${p}')">${p}</button>`;});
   h+=`</div><button onclick="addEx()" class="btn btn-p" style="margin-top:0">+ Dodaj vežbu</button></div></div>`;
+
   document.getElementById('screen-schedule').innerHTML=h;
   selNewExPart('Grudi');
 }
@@ -504,7 +508,7 @@ function renderHistory(){
             <span style="font-weight:600;font-size:13px">${ex.name}</span><span class="badge bp" style="font-size:10px">Kardio</span></div>
             <div style="font-size:12px;color:var(--text2)">⏱ ${ex.duration||0} min · 🔥 ${kcal} kcal</div></div>`;
         } else {
-          const maxW=Math.max(0,...ex.sets.map(s=>s.weight));
+          const maxW=Math.max(...ex.sets.map(s=>s.weight));
           const kcal=calcStrengthCalories(ex);
           h+=`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px">
             <span style="font-weight:600;font-size:13px">${ex.name}</span>
@@ -521,51 +525,18 @@ function renderHistory(){
   document.getElementById('screen-history').innerHTML=h;
 }
 
-// ===== STATS =====
-let statsTab='trening';
-let pChart=null,wChart=null,kcalChart=null,nutriChart=null,nutriWeekChart=null;
-
+// STATS
 function renderStats(){
-  let h=`<h2>Statistika</h2>
-  <div style="display:flex;gap:8px;margin-bottom:16px">
-    <button onclick="setStatsTab('trening')" id="stab-trening" class="btn ${statsTab==='trening'?'btn-p':'btn-s'}" style="margin-top:0;flex:1;padding:10px">🏋️ Trening</button>
-    <button onclick="setStatsTab('ishrana')" id="stab-ishrana" class="btn ${statsTab==='ishrana'?'btn-p':'btn-s'}" style="margin-top:0;flex:1;padding:10px">🥗 Ishrana</button>
-  </div>
-  <div id="stats-body"></div>`;
-  document.getElementById('screen-stats').innerHTML=h;
-  renderStatsBody();
-}
-
-function setStatsTab(t){
-  statsTab=t;
-  document.querySelectorAll('[id^=stab-]').forEach(b=>{b.className=b.className.replace('btn-p','btn-s');});
-  document.getElementById('stab-'+t).className=document.getElementById('stab-'+t).className.replace('btn-s','btn-p');
-  renderStatsBody();
-}
-
-function renderStatsBody(){
-  if(statsTab==='trening') renderTrainingStats();
-  else renderNutritionStats();
-}
-
-function renderTrainingStats(){
   const totalW=state.workouts.length;
   const totalS=state.workouts.reduce((a,w)=>a+w.exercises.reduce((b,e)=>b+(e.type==='kardio'?1:e.sets.length),0),0);
   const totalVol=state.workouts.reduce((a,w)=>a+w.exercises.filter(e=>e.type!=='kardio').reduce((b,e)=>b+e.sets.reduce((c,s)=>c+s.reps*s.weight,0),0),0);
-  const totalKcal=state.workouts.reduce((a,w)=>a+w.exercises.reduce((b,e)=>{
-    if(e.type==='kardio')return b+calcKardioCalories(e.duration||0,e.kcal||0);
-    return b+calcStrengthCalories(e);
-  },0),0);
   const activeDays=state.schedule.filter(s=>s.active).length;
-
-  let h=`<div class="metric-grid">
+  let h=`<h2>Statistika</h2><div class="metric-grid">
     <div class="metric"><div class="metric-val" style="color:var(--accentL)">${totalW}</div><div class="metric-label">Treninzi</div></div>
     <div class="metric"><div class="metric-val" style="color:var(--green)">${totalS}</div><div class="metric-label">Serije</div></div>
     <div class="metric"><div class="metric-val" style="font-size:22px">${(totalVol/1000).toFixed(1)}t</div><div class="metric-label">Ukupni volumen</div></div>
-    <div class="metric"><div class="metric-val" style="color:var(--amber)">${Math.round(totalKcal/1000*10)/10}k</div><div class="metric-label">Spaljene kcal</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--amber)">${activeDays}</div><div class="metric-label">Dani/nedelja</div></div>
   </div>`;
-
-  // Body parts
   const partCount={};
   state.workouts.forEach(w=>w.parts.forEach(p=>{partCount[p]=(partCount[p]||0)+1;}));
   const maxC=Math.max(1,...Object.values(partCount));
@@ -577,16 +548,6 @@ function renderTrainingStats(){
     });
     h+=`</div>`;
   }
-
-  // Calories per workout (last 10)
-  const calWorkouts=[...state.workouts].slice(-10).map(w=>({
-    date:w.date.slice(5),
-    kcal:w.exercises.reduce((a,e)=>a+(e.type==='kardio'?calcKardioCalories(e.duration||0,e.kcal||0):calcStrengthCalories(e)),0)
-  }));
-  h+=`<div class="card"><div class="card-label">Kalorije po treningu (poslednjih 10)</div>
-    <div class="chart-wrap"><canvas id="kcalChart"></canvas></div></div>`;
-
-  // Progress chart
   const allEx=[...new Set(state.workouts.flatMap(w=>w.exercises.filter(e=>e.type!=='kardio').map(e=>e.name)))];
   if(allEx.length){
     h+=`<div class="card"><div class="card-label">Progres težina</div>
@@ -594,28 +555,10 @@ function renderTrainingStats(){
     allEx.forEach(n=>{h+=`<option value="${n}">${n}</option>`;});
     h+=`</select><div class="chart-wrap"><canvas id="pChart"></canvas></div></div>`;
   }
-
-  // Weekly volume
   h+=`<div class="card"><div class="card-label">Volumen po nedelji (8 ned.)</div><div class="chart-wrap"><canvas id="wChart"></canvas></div></div>`;
-
-  document.getElementById('stats-body').innerHTML=h;
-  setTimeout(()=>{
-    renderKcalChart(calWorkouts);
-    updateProgressChart();
-    renderWeekChart();
-  },50);
+  document.getElementById('screen-stats').innerHTML=h;
+  setTimeout(()=>{updateProgressChart();renderWeekChart();},50);
 }
-
-function renderKcalChart(data){
-  const ctx=document.getElementById('kcalChart');if(!ctx)return;
-  if(kcalChart){kcalChart.destroy();kcalChart=null;}
-  kcalChart=new Chart(ctx,{
-    type:'bar',
-    data:{labels:data.map(d=>d.date),datasets:[{label:'kcal',data:data.map(d=>d.kcal),backgroundColor:'rgba(245,158,11,.5)',borderColor:'#f59e0b',borderWidth:1,borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#64748b',font:{size:11},callback:v=>v+' kcal'},grid:{color:'rgba(255,255,255,.05)'}}}}
-  });
-}
-
 function updateProgressChart(){
   const name=document.getElementById('ex-sel')?.value;if(!name)return;
   const pts=[];
@@ -637,143 +580,6 @@ function renderWeekChart(){
   const ctx=document.getElementById('wChart');if(!ctx)return;
   if(wChart){wChart.destroy();wChart=null;}
   wChart=new Chart(ctx,{type:'bar',data:{labels:weeks.map(w=>w.label),datasets:[{label:'Volumen',data:weeks.map(w=>w.vol),backgroundColor:'rgba(59,130,246,.5)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10},maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},y:{ticks:{color:'#64748b',font:{size:11},callback:v=>v+'kg'},grid:{color:'rgba(255,255,255,.05)'}}}}});
-}
-
-// ===== NUTRITION STATS =====
-let nutriPeriod='week'; // week | month
-
-function renderNutritionStats(){
-  const dates=Object.keys(state.nutrition||{}).sort();
-  if(!dates.length){
-    document.getElementById('stats-body').innerHTML=`<div class="empty">Nema unetih podataka o ishrani.<br>Unesi obroke u tabu Ishrana.</div>`;
-    return;
-  }
-
-  // Build daily totals for all dates with data
-  const dailyData=dates.map(date=>{
-    const day=state.nutrition[date];
-    const allItems=Object.values(day).flat();
-    return{date,...mealTotals(allItems)};
-  });
-
-  // Last 7 days / 30 days depending on period
-  const now=new Date();
-  const days=nutriPeriod==='week'?7:nutriPeriod==='month'?30:90;
-  const cutoff=new Date(now);cutoff.setDate(cutoff.getDate()-days+1);cutoff.setHours(0,0,0,0);
-  const filtered=dailyData.filter(d=>new Date(d.date+'T12:00:00')>=cutoff);
-
-  // Averages
-  const avg=filtered.length?{
-    kcal:filtered.reduce((a,d)=>a+d.kcal,0)/filtered.length,
-    protein:filtered.reduce((a,d)=>a+d.protein,0)/filtered.length,
-    carbs:filtered.reduce((a,d)=>a+d.carbs,0)/filtered.length,
-    fat:filtered.reduce((a,d)=>a+d.fat,0)/filtered.length,
-  }:{kcal:0,protein:0,carbs:0,fat:0};
-
-  let h=`<div style="display:flex;gap:6px;margin-bottom:14px">
-    <button onclick="setNutriPeriod('week')" class="btn ${nutriPeriod==='week'?'btn-p':'btn-s'}" style="margin-top:0;flex:1;padding:9px;font-size:13px">7 dana</button>
-    <button onclick="setNutriPeriod('month')" class="btn ${nutriPeriod==='month'?'btn-p':'btn-s'}" style="margin-top:0;flex:1;padding:9px;font-size:13px">30 dana</button>
-    <button onclick="setNutriPeriod('quarter')" class="btn ${nutriPeriod==='quarter'?'btn-p':'btn-s'}" style="margin-top:0;flex:1;padding:9px;font-size:13px">90 dana</button>
-  </div>`;
-
-  if(!filtered.length){
-    h+=`<div class="empty">Nema podataka za izabrani period.</div>`;
-    document.getElementById('stats-body').innerHTML=h;
-    return;
-  }
-
-  // Average KPIs
-  h+=`<div class="card"><div class="card-label">Prosek dnevnog unosa (${filtered.length} dana)</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-      <div class="metric" style="padding:10px"><div class="metric-val" style="font-size:18px;color:var(--amber)">${Math.round(avg.kcal)}</div><div class="metric-label">kcal</div></div>
-      <div class="metric" style="padding:10px"><div class="metric-val" style="font-size:18px;color:var(--accentL)">${avg.protein.toFixed(0)}g</div><div class="metric-label">Proteini</div></div>
-      <div class="metric" style="padding:10px"><div class="metric-val" style="font-size:18px;color:var(--green)">${avg.carbs.toFixed(0)}g</div><div class="metric-label">UH</div></div>
-      <div class="metric" style="padding:10px"><div class="metric-val" style="font-size:18px;color:var(--red)">${avg.fat.toFixed(0)}g</div><div class="metric-label">Masti</div></div>
-    </div>
-  </div>`;
-
-  // Macros % pie-like bars
-  const totalMacroG=avg.protein+avg.carbs+avg.fat;
-  if(totalMacroG>0){
-    h+=`<div class="card"><div class="card-label">Raspodela makronutrijenata (prosek)</div>`;
-    [{label:'Proteini',val:avg.protein,color:'var(--accentL)'},{label:'Ugljeni hidrati',val:avg.carbs,color:'var(--green)'},{label:'Masti',val:avg.fat,color:'var(--red)'}].forEach(m=>{
-      const pct=Math.round(m.val/totalMacroG*100);
-      h+=`<div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
-          <span>${m.label}</span><span style="color:${m.color};font-weight:600">${m.val.toFixed(1)}g · ${pct}%</span>
-        </div>
-        <div class="progress-bar"><div style="height:100%;border-radius:3px;background:${m.color};width:${pct}%"></div></div>
-      </div>`;
-    });
-    h+=`</div>`;
-  }
-
-  // Daily kcal chart
-  // For week show daily, for month/quarter show weekly aggregates
-  let chartData=[];
-  if(nutriPeriod==='week'){
-    chartData=filtered.map(d=>({label:d.date.slice(5),kcal:Math.round(d.kcal),protein:Math.round(d.protein),carbs:Math.round(d.carbs),fat:Math.round(d.fat)}));
-  } else {
-    // Group by week
-    const weekMap={};
-    filtered.forEach(d=>{
-      const dt=new Date(d.date+'T12:00:00');
-      const dow=dt.getDay();const start=new Date(dt);start.setDate(dt.getDate()-(dow===0?6:dow-1));
-      const key=`${start.getDate()}.${start.getMonth()+1}`;
-      if(!weekMap[key])weekMap[key]={label:key,kcal:0,protein:0,carbs:0,fat:0,count:0};
-      weekMap[key].kcal+=d.kcal;weekMap[key].protein+=d.protein;weekMap[key].carbs+=d.carbs;weekMap[key].fat+=d.fat;weekMap[key].count++;
-    });
-    chartData=Object.values(weekMap).map(w=>({label:w.label,kcal:Math.round(w.kcal/w.count),protein:Math.round(w.protein/w.count),carbs:Math.round(w.carbs/w.count),fat:Math.round(w.fat/w.count)}));
-  }
-
-  h+=`<div class="card"><div class="card-label">Kalorije po ${nutriPeriod==='week'?'danu':'nedelji'}</div>
-    <div class="chart-wrap"><canvas id="nutriKcalChart"></canvas></div></div>`;
-
-  h+=`<div class="card"><div class="card-label">Makronutrijenti po ${nutriPeriod==='week'?'danu':'nedelji'} (g)</div>
-    <div class="chart-wrap" style="height:200px"><canvas id="nutriMacroChart"></canvas></div></div>`;
-
-  document.getElementById('stats-body').innerHTML=h;
-  setTimeout(()=>{
-    renderNutriKcalChart(chartData);
-    renderNutriMacroChart(chartData);
-  },50);
-}
-
-function setNutriPeriod(p){nutriPeriod=p;renderNutritionStats();}
-
-function renderNutriKcalChart(data){
-  const ctx=document.getElementById('nutriKcalChart');if(!ctx)return;
-  if(nutriChart){nutriChart.destroy();nutriChart=null;}
-  nutriChart=new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:data.map(d=>d.label),
-      datasets:[{label:'kcal',data:data.map(d=>d.kcal),backgroundColor:'rgba(245,158,11,.5)',borderColor:'#f59e0b',borderWidth:1,borderRadius:4}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#64748b',font:{size:10},maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
-              y:{ticks:{color:'#64748b',font:{size:11},callback:v=>v+' kcal'},grid:{color:'rgba(255,255,255,.05)'}}}}
-  });
-}
-
-function renderNutriMacroChart(data){
-  const ctx=document.getElementById('nutriMacroChart');if(!ctx)return;
-  if(nutriWeekChart){nutriWeekChart.destroy();nutriWeekChart=null;}
-  nutriWeekChart=new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:data.map(d=>d.label),
-      datasets:[
-        {label:'Proteini (g)',data:data.map(d=>d.protein),backgroundColor:'rgba(147,197,253,.7)',borderColor:'#93c5fd',borderWidth:1,borderRadius:2},
-        {label:'UH (g)',data:data.map(d=>d.carbs),backgroundColor:'rgba(34,197,94,.5)',borderColor:'#22c55e',borderWidth:1,borderRadius:2},
-        {label:'Masti (g)',data:data.map(d=>d.fat),backgroundColor:'rgba(239,68,68,.5)',borderColor:'#ef4444',borderWidth:1,borderRadius:2},
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:11},boxWidth:12,padding:8}}},
-      scales:{x:{stacked:true,ticks:{color:'#64748b',font:{size:10},maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
-              y:{stacked:true,ticks:{color:'#64748b',font:{size:11},callback:v=>v+'g'},grid:{color:'rgba(255,255,255,.05)'}}}}
-  });
 }
 
 // NUTRITION
