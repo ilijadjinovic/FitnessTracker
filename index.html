@@ -268,7 +268,7 @@ function renderHome(){
     ts.parts.forEach(p=>{h+=`<span class="badge bb">${p}</span>`;});
     h+=`</div>`;
     if(todayDone.length===0){
-      h+=`<button class="btn btn-p" onclick="openLogModal(${ti})">+ Zapiši trening</button>`;
+      h+=`<button class="btn btn-p" onclick="openLogModal(${ti})">+ Upiši trening</button>`;
     } else {
       h+=`<div class="badge bg" style="font-size:14px;padding:8px 14px;border-radius:10px">✓ Trening upisan danas</div>`;
     }
@@ -454,8 +454,8 @@ function renderSchedule(){
 
   h+=`<div class="card" style="margin-top:14px">
     <div class="card-label">Backup podataka</div>
-    <button onclick="exportData()" class="btn btn-g" style="margin-top:0">⬇️ Snimi podatke na računar</button>
-    <label class="btn btn-b" style="margin-top:8px;cursor:pointer">⬆️ Učitaj podatke sa računara
+    <button onclick="exportData()" class="btn btn-g" style="margin-top:0">⬇️ Snimi podatke</button>
+    <label class="btn btn-b" style="margin-top:8px;cursor:pointer">⬆️ Učitaj podatke
       <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
     </label>
     <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-top:8px">Snimi sve podatke kao JSON fajl. Učitaj na drugom uređaju ili browseru.</div>
