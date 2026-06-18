@@ -26,6 +26,15 @@ window.load=function(){
       if(!S.profile)S.profile={name:'',age:'',height:'',weight:''};
       if(!S.foods||!S.foods.length)S.foods=DFD.map(f=>Object.assign({},f));
       if(!S.exercises||!S.exercises.length)S.exercises=DEX.map(e=>Object.assign({},e));
+      // Migracija: popuni amp/bw/met na postojecim vezbama koje ih nemaju (stari save pre ove izmene)
+      S.exercises.forEach(function(e){
+        var ref=DEX.find(function(d){return d.id===e.id});
+        if(ref){
+          if(e.amp===undefined&&ref.amp!==undefined)e.amp=ref.amp;
+          if(e.bw===undefined&&ref.bw!==undefined)e.bw=ref.bw;
+          if(e.met===undefined&&ref.met!==undefined)e.met=ref.met;
+        }
+      });
     }
   }catch(e){}
 }
@@ -62,8 +71,10 @@ function sKcal(ex){
   if(!ex.sets||!ex.sets.length)return 0;
   var bw=parseFloat(S.profile.weight)||75;
   var gender=S.profile.gender||'m';
-  // Amplituda pokreta ~0.45m prosecno (razlicita za razlicite vezbe)
-  var amp=0.45;
+  // Amplituda pokreta po vežbi (iz DEX baze); fallback 0.45m za custom vežbe bez podatka
+  var amp=(typeof ex.amp==='number')?ex.amp:0.45;
+  // Da li je vežba sa sopstvenom telesnom težinom (npr. plank, sklekovi, pull-up)
+  var isBw=ex.bw===true;
   // Efikasnost misica ~25% (75% se gubi kao toplota)
   var eff=0.25;
   // Ekscentricna faza dodaje ~30% od koncentricne
@@ -72,9 +83,13 @@ function sKcal(ex){
   ex.sets.forEach(function(s){
     var load=s.w||0;
     var reps=s.r||0;
-    if(load===0){
-      // Vežba sa sopstvenom težinom - koristi telesnu masu
-      load=bw*0.65;
+    if(isBw){
+      // Bodyweight vežba: uvek koristi telesnu masu, bez obzira sta je uneto u 'w'
+      load=bw*0.65+load; // +load ako korisnik doda dodatni teg (npr. weighted dips)
+    }else if(load===0){
+      // Vežba sa opremom, ali korisnik nije uneo kg — ne izmišljamo opterećenje,
+      // računamo samo bazalni trošak tokom serije (bez mehaničkog rada)
+      load=0;
     }
     // Mehanicki rad po seriji (Joule) -> kcal
     // W = load(kg) * g(9.81) * amp(m) * reps * eccFactor
@@ -88,9 +103,10 @@ function sKcal(ex){
   });
   return Math.round(totalKcal);
 }
-function kKcal(dur,man){
+function kKcal(dur,man,met){
   if(man&&man>0)return man;
-  return Math.round(0.0175*8*(parseFloat(S.profile.weight)||75)*(dur||0));
+  var m=(typeof met==='number')?met:8; // fallback MET=8 za custom kardio vežbe bez podatka
+  return Math.round(0.0175*m*(parseFloat(S.profile.weight)||75)*(dur||0));
 }
 function mTot(items){
   return items.reduce(function(a,it){
@@ -162,7 +178,7 @@ function openLog(dayIdx){
   var sc=S.schedule[dayIdx];
   S.log={di:dayIdx,parts:sc.parts,note:'',exercises:S.exercises.filter(function(e){return sc.parts.indexOf(e.part)>=0}).map(function(e){
     var isK=e.part==='Kardio';
-    return{id:e.id,name:e.name,part:e.part,type:isK?'k':'s',sets:isK?[]:[{r:12,w:0},{r:12,w:0},{r:12,w:0},{r:12,w:0}],dur:0,kcal:0};
+    return{id:e.id,name:e.name,part:e.part,type:isK?'k':'s',sets:isK?[]:[{r:12,w:0},{r:12,w:0},{r:12,w:0},{r:12,w:0}],dur:0,kcal:0,amp:e.amp,bw:e.bw,met:e.met};
   })};
   rLog();
   el('modwrap').classList.remove('hide');
@@ -192,7 +208,7 @@ function rLog(){
     h+='<button onclick="rmEx('+ei+')" style="background:rgba(239,68,68,.15);border:none;color:var(--red);cursor:pointer;padding:5px 8px;border-radius:6px;font-size:12px;width:auto">🗑</button>';
     h+='</div></div>';
     if(isK){
-      var ke=kKcal(ex.dur,ex.kcal);
+      var ke=kKcal(ex.dur,ex.kcal,ex.met);
       h+='<div class="krow"><div class="kf"><div class="klbl">Trajanje (min)</div>';
       h+='<div class="nc"><button onclick="chgK('+ei+',\'dur\',-5)">−</button><span>'+(ex.dur||0)+'</span><button onclick="chgK('+ei+',\'dur\',5)">+</button></div></div>';
       h+='<div class="kf"><div class="klbl">Kalorije (kcal)</div>';
@@ -239,7 +255,7 @@ function addEx(id){
   var e=S.exercises.find(function(x){return x.id===id});
   if(!e)return;
   var isK=e.part==='Kardio';
-  S.log.exercises.push({id:e.id,name:e.name,part:e.part,type:isK?'k':'s',sets:isK?[]:[{r:12,w:0},{r:12,w:0},{r:12,w:0},{r:12,w:0}],dur:0,kcal:0});
+  S.log.exercises.push({id:e.id,name:e.name,part:e.part,type:isK?'k':'s',sets:isK?[]:[{r:12,w:0},{r:12,w:0},{r:12,w:0},{r:12,w:0}],dur:0,kcal:0,amp:e.amp,bw:e.bw,met:e.met});
   rLog();
 }
 function saveLog(){
@@ -322,7 +338,7 @@ window.rHist=function(){
       h+='</div>';
       w.exercises.forEach(function(ex){
         if(ex.type==='k'){
-          var kc=ex.kcal||kKcal(ex.dur||0,0);
+          var kc=ex.kcal||kKcal(ex.dur||0,0,ex.met);
           h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-weight:600;font-size:13px">'+ex.name+'</span><span class="bdg bp" style="font-size:10px">Kardio</span></div>';
           h+='<div style="font-size:12px;color:var(--tx2)">⏱ '+(ex.dur||0)+' min · 🔥 '+kc+' kcal</div></div>';
         }else{
@@ -336,7 +352,7 @@ window.rHist=function(){
       });
       // Ukupno kalorije za ceo trening
       var totalKcal=w.exercises.reduce(function(a,ex){
-        if(ex.type==='k'){return a+kKcal(ex.dur||0,ex.kcal||0);}
+        if(ex.type==='k'){return a+kKcal(ex.dur||0,ex.kcal||0,ex.met);}
         return a+sKcal(ex);
       },0);
       h+='<div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:8px;display:flex;justify-content:space-between;align-items:center">';
@@ -368,7 +384,7 @@ function rTStats(){
   var tw=S.workouts.length;
   var ts=S.workouts.reduce(function(a,w){return a+w.exercises.reduce(function(b,e){return b+(e.type==='k'?1:e.sets.length)},0)},0);
   var tv=S.workouts.reduce(function(a,w){return a+w.exercises.filter(function(e){return e.type!=='k'}).reduce(function(b,e){return b+e.sets.reduce(function(c,s){return c+s.r*s.w},0)},0)},0);
-  var tk=S.workouts.reduce(function(a,w){return a+w.exercises.reduce(function(b,e){return b+(e.type==='k'?kKcal(e.dur||0,e.kcal||0):sKcal(e))},0)},0);
+  var tk=S.workouts.reduce(function(a,w){return a+w.exercises.reduce(function(b,e){return b+(e.type==='k'?kKcal(e.dur||0,e.kcal||0,e.met):sKcal(e))},0)},0);
   var ad=S.schedule.filter(function(s){return s.active}).length;
   var h='<div class="mg">';
   h+='<div class="met"><div class="mv" style="color:var(--accL)">'+tw+'</div><div class="ml">Treninzi</div></div>';
@@ -386,7 +402,7 @@ function rTStats(){
     });
     h+='</div>';
   }
-  var calData=S.workouts.slice(-10).map(function(w){return{lbl:w.date.slice(5),v:w.exercises.reduce(function(a,e){return a+(e.type==='k'?kKcal(e.dur||0,e.kcal||0):sKcal(e))},0)}});
+  var calData=S.workouts.slice(-10).map(function(w){return{lbl:w.date.slice(5),v:w.exercises.reduce(function(a,e){return a+(e.type==='k'?kKcal(e.dur||0,e.kcal||0,e.met):sKcal(e))},0)}});
   h+='<div class="card"><div class="clbl">Kalorije po treningu (poslednjih 10)</div><div class="cwrap"><canvas id="kcC"></canvas></div></div>';
   var allEx=[...new Set(S.workouts.flatMap(function(w){return w.exercises.filter(function(e){return e.type!=='k'}).map(function(e){return e.name})}))];
   if(allEx.length){
@@ -731,7 +747,7 @@ function genHistSection(){
   if(!wkts.length){h+='<p style="color:#64748b">Nema treninga u izabranom periodu.</p>';return h;}
   wkts.slice().reverse().forEach(function(w){
     var totalKcal=w.exercises.reduce(function(a,ex){
-      if(ex.type==='k'){return a+kKcal(ex.dur||0,ex.kcal||0);}
+      if(ex.type==='k'){return a+kKcal(ex.dur||0,ex.kcal||0,ex.met);}
       return a+sKcal(ex);
     },0);
     h+='<div class="pdf-card no-break">';
@@ -741,7 +757,7 @@ function genHistSection(){
     h+='<table><tr><th>Vežba</th><th>Tip</th><th>Detalji</th><th>kcal</th></tr>';
     w.exercises.forEach(function(ex){
       if(ex.type==='k'){
-        h+='<tr><td>'+ex.name+'</td><td>Kardio</td><td>'+(ex.dur||0)+' min</td><td>'+kKcal(ex.dur||0,ex.kcal||0)+'</td></tr>';
+        h+='<tr><td>'+ex.name+'</td><td>Kardio</td><td>'+(ex.dur||0)+' min</td><td>'+kKcal(ex.dur||0,ex.kcal||0,ex.met)+'</td></tr>';
       }else{
         var mw=ex.sets.length?Math.max.apply(null,ex.sets.map(function(s){return s.w})):0;
         var sets=ex.sets.map(function(s,i){return (i+1)+': '+s.r+'×'+s.w+'kg'}).join('  ');
@@ -765,7 +781,7 @@ function genStatsSection(){
   var tw=wkts.length;
   var ts=wkts.reduce(function(a,w){return a+w.exercises.reduce(function(b,e){return b+(e.type==='k'?1:e.sets.length)},0)},0);
   var tv=wkts.reduce(function(a,w){return a+w.exercises.filter(function(e){return e.type!=='k'}).reduce(function(b,e){return b+e.sets.reduce(function(c,s){return c+s.r*s.w},0)},0)},0);
-  var tk=wkts.reduce(function(a,w){return a+w.exercises.reduce(function(b,e){return b+(e.type==='k'?kKcal(e.dur||0,e.kcal||0):sKcal(e))},0)},0);
+  var tk=wkts.reduce(function(a,w){return a+w.exercises.reduce(function(b,e){return b+(e.type==='k'?kKcal(e.dur||0,e.kcal||0,e.met):sKcal(e))},0)},0);
   h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">';
   [{v:tw,l:'Treninga'},{v:ts,l:'Serija'},{v:(tv/1000).toFixed(1)+'t',l:'Volumen'},{v:(tk/1000).toFixed(1)+'k',l:'kcal spaljeno'}].forEach(function(m){
     h+='<div class="pdf-stat"><div class="pdf-stat-v">'+m.v+'</div><div class="pdf-stat-l">'+m.l+'</div></div>';
