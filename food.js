@@ -1,0 +1,53 @@
+// ===== MEALS — obroci =====
+const MEALS = [
+  {id:'bfst', lbl:'Doručak',  ico:'🌅'},
+  {id:'snk1', lbl:'Užina 1',  ico:'🍎'},
+  {id:'lnch', lbl:'Ručak',    ico:'🍽️'},
+  {id:'snk2', lbl:'Užina 2',  ico:'🥜'},
+  {id:'dnr',  lbl:'Večera',   ico:'🌙'}
+];
+
+// ===== DFD — baza namirnica =====
+const DFD = [
+  {id:'f1', name:'Piletina (belo meso)',   unit:'g',   p:31,   c:0,    f:3.6,  k:165},
+  {id:'f2', name:'Govedina',               unit:'g',   p:26,   c:0,    f:15,   k:250},
+  {id:'f3', name:'Jaje',                   unit:'kom', p:6,    c:0.6,  f:5,    k:72},
+  {id:'f4', name:'Svinjetina',             unit:'g',   p:25.7, c:0,    f:20.8, k:297},
+  {id:'f5', name:'Mleko (2.8%)',           unit:'ml',  p:3.4,  c:4.8,  f:2.8,  k:57},
+  {id:'f6', name:'Jogurt (prirodni)',      unit:'g',   p:3.5,  c:4.7,  f:3.3,  k:61},
+  {id:'f7', name:'Ovsena kaša',           unit:'g',   p:13,   c:68,   f:7,    k:389},
+  {id:'f8', name:'Pirinač (beli)',         unit:'g',   p:2.7,  c:28,   f:0.3,  k:130},
+  {id:'f9', name:'Krompir',               unit:'g',   p:2,    c:17,   f:0.1,  k:77},
+  {id:'f10',name:'Pasta (kuvana)',         unit:'g',   p:5,    c:31,   f:1,    k:158},
+  {id:'f11',name:'Hleb (integralni)',      unit:'g',   p:9,    c:41,   f:3.4,  k:247},
+  {id:'f12',name:'Brokoli',               unit:'g',   p:2.8,  c:7,    f:0.4,  k:34},
+  {id:'f13',name:'Spanać',                unit:'g',   p:2.9,  c:3.6,  f:0.4,  k:23},
+  {id:'f14',name:'Banana',                unit:'kom', p:1.3,  c:27,   f:0.4,  k:105},
+  {id:'f15',name:'Jabuka',                unit:'kom', p:0.5,  c:25,   f:0.3,  k:95},
+  {id:'f16',name:'Bademi',                unit:'g',   p:21,   c:22,   f:49,   k:579},
+  {id:'f17',name:'Kikiriki puter',        unit:'g',   p:25,   c:20,   f:50,   k:588},
+  {id:'f18',name:'Maslinovo ulje',        unit:'ml',  p:0,    c:0,    f:14,   k:119},
+  {id:'f19',name:'Losos',                 unit:'g',   p:20,   c:0,    f:13,   k:208},
+  {id:'f20',name:'Tunjevina (konzerva)',  unit:'g',   p:26,   c:0,    f:1,    k:116},
+  {id:'f21',name:'Protein prah (whey)',   unit:'g',   p:25,   c:3,    f:1.5,  k:120},
+  {id:'f22',name:'Kafa (crna)',           unit:'ml',  p:0.3,  c:0,    f:0,    k:2},
+  {id:'f23',name:'Voda',                  unit:'ml',  p:0,    c:0,    f:0,    k:0},
+  {id:'f24',name:'Sok (narandža)',        unit:'ml',  p:0.7,  c:10,   f:0.2,  k:45},
+  {id:'f25',name:'Sir (gauda)',           unit:'g',   p:25,   c:0,    f:31,   k:356},
+  {id:'f26',name:'Pasulj (kuvani)',       unit:'g',   p:8.9,  c:22,   f:0.5,  k:127},
+  {id:'f27',name:'Leblebija',             unit:'g',   p:9,    c:27,   f:2.6,  k:164},
+  {id:'f28',name:'Čokolada (tamna)',      unit:'g',   p:5,    c:46,   f:31,   k:546},
+  {id:'f29',name:'Sveže povrće',         unit:'g',   p:1.5,  c:5,    f:0.2,  k:25},
+  {id:'f30',name:'Narandža',             unit:'kom', p:1.2,  c:15,   f:0.2,  k:62},
+  {id:'f31',name:'FETA sir',             unit:'g',   p:14,   c:4.1,  f:21,   k:264},
+  {id:'f32',name:'Pileći batak',         unit:'g',   p:24.2, c:0,    f:9,    k:184},
+  {id:'f33',name:'Grčki jogurt',         unit:'g',   p:6,    c:5,    f:10,   k:133},
+  {id:'f34',name:'Boranija',             unit:'g',   p:1.8,  c:7.1,  f:0.1,  k:31},
+  {id:'f35',name:'Crni luk',             unit:'g',   p:1.1,  c:9.3,  f:0.1,  k:40},
+  {id:'f36',name:'Kupus',                unit:'g',   p:1.3,  c:5.8,  f:0.1,  k:25},
+  {id:'f37',name:'Kuvani kukuruz',       unit:'g',   p:3.3,  c:18.7, f:1.4,  k:86},
+  {id:'f38',name:'Paradajz',             unit:'g',   p:0.9,  c:3.9,  f:0.2,  k:18},
+  {id:'f39',name:'Sočivo',              unit:'g',   p:24.6, c:63.4, f:1.1,  k:352},
+  {id:'f40',name:'Pastrmka',             unit:'g',   p:21.5, c:0,    f:1.4,  k:195},
+  {id:'f41',name:'Beli hleb',            unit:'g',   p:9,    c:49,   f:32,   k:265}
+];
