@@ -43,7 +43,13 @@ load();
 var curTab='home', nutrDate='', exPart='Grudi', stab='trening', nperiod='week';
 var charts={};
 
-function today(){return new Date().toISOString().split('T')[0]}
+function today(){
+  var d=new Date();
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
 function tidx(){return(new Date().getDay()+6)%7}
 window.toast=function(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);}
 function el(id){return document.getElementById(id)}
