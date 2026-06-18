@@ -34,7 +34,7 @@ window.fbAutoSave = function () {
         data:      JSON.stringify(clean),
         updatedAt: new Date().toISOString()
       });
-      // tiho snimanje — bez toast poruke
+      if (typeof window.toast === 'function') window.toast('☁️ Snimljeno u cloud!');
     } catch (e) {
       console.warn('fbAutoSave greška:', e.message);
     }
