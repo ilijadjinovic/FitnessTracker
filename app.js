@@ -47,6 +47,13 @@ window.load=function(){
           e.bw=true;e.amp=0.50;e.bwFrac=0.30;
         }
       });
+      // Migracija: dodaj nove default vežbe iz DEX koje još ne postoje u sačuvanoj listi
+      // (S.exercises se inicijalizuje iz DEX samo jednom, prvi put — ako je DEX kasnije proširen
+      // novim spravama, postojeći save ih nikad ne dobija automatski bez ovog koraka)
+      DEX.forEach(function(d){
+        var exists=S.exercises.some(function(e){return e.id===d.id});
+        if(!exists)S.exercises.push(Object.assign({},d));
+      });
     }
   }catch(e){}
 }
@@ -323,7 +330,8 @@ window.rSched=function(){
   h+='<div class="card" style="margin-top:14px"><div class="clbl">Moje vežbe</div>';
   S.exercises.forEach(function(e,i){
     h+='<div class="li"><div><div style="font-size:13px;font-weight:600">'+e.name+'</div><div style="font-size:11px;color:var(--tx3)">'+e.part+'</div></div>';
-    if(i>=DEX.length)h+='<button onclick="rmExList('+i+')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:20px;width:auto">×</button>';
+    var isDefault=DEX.some(function(d){return d.id===e.id});
+    if(!isDefault)h+='<button onclick="rmExList('+i+')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:20px;width:auto">×</button>';
     else h+='<span style="font-size:11px;color:var(--tx3)">default</span>';
     h+='</div>';
   });
