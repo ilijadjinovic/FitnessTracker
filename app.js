@@ -26,13 +26,25 @@ window.load=function(){
       if(!S.profile)S.profile={name:'',age:'',height:'',weight:''};
       if(!S.foods||!S.foods.length)S.foods=DFD.map(f=>Object.assign({},f));
       if(!S.exercises||!S.exercises.length)S.exercises=DEX.map(e=>Object.assign({},e));
-      // Migracija: popuni amp/bw/met na postojecim vezbama koje ih nemaju (stari save pre ove izmene)
+      // Migracija: popuni amp/bw/met/bwFrac na postojecim vezbama koje ih nemaju (stari save pre ove izmene)
       S.exercises.forEach(function(e){
         var ref=DEX.find(function(d){return d.id===e.id});
         if(ref){
           if(e.amp===undefined&&ref.amp!==undefined)e.amp=ref.amp;
           if(e.bw===undefined&&ref.bw!==undefined)e.bw=ref.bw;
           if(e.met===undefined&&ref.met!==undefined)e.met=ref.met;
+          if(e.bwFrac===undefined&&ref.bwFrac!==undefined)e.bwFrac=ref.bwFrac;
+        }
+      });
+      // Jednokratna popravka starih custom vežbi dodatih pre uvođenja amp/bw/bwFrac polja
+      // (prepoznavanje po nazivu — pokriva vežbe koje je korisnik ručno uneo kroz "Dodaj vežbu")
+      S.exercises.forEach(function(e){
+        if(e.amp!==undefined||e.bw!==undefined||e.met!==undefined)return; // već ima parametre, ne diraj
+        var nm=(e.name||'').toLowerCase();
+        if(nm.indexOf('kos')>=0&&nm.indexOf('klup')>=0){ // kosa klupa
+          e.bw=true;e.amp=0.38;e.bwFrac=0.30;
+        }else if(nm.indexOf('rimsk')>=0||nm.indexOf('kapetan')>=0){ // rimska / kapetanska stolica
+          e.bw=true;e.amp=0.50;e.bwFrac=0.30;
         }
       });
     }
@@ -90,8 +102,10 @@ function sKcal(ex){
     var load=s.w||0;
     var reps=s.r||0;
     if(isBw){
-      // Bodyweight vežba: uvek koristi telesnu masu, bez obzira sta je uneto u 'w'
-      load=bw*0.65+load; // +load ako korisnik doda dodatni teg (npr. weighted dips)
+      // Bodyweight vežba: koristi se procenat telesne mase koji vežba realno pokreće
+      // (npr. celo telo kod pull-up/dips ~0.65, samo noge kod rimske stolice ~0.30)
+      var bwFrac=(typeof ex.bwFrac==='number')?ex.bwFrac:0.65; // fallback 0.65 za stare vežbe bez podatka
+      load=bw*bwFrac+load; // +load ako korisnik doda dodatni teg (npr. weighted dips, teg medju stopalima)
     }else if(load===0){
       // Vežba sa opremom, ali korisnik nije uneo kg — ne izmišljamo opterećenje,
       // računamo samo bazalni trošak tokom serije (bez mehaničkog rada)
@@ -261,7 +275,7 @@ function addEx(id){
   var e=S.exercises.find(function(x){return x.id===id});
   if(!e)return;
   var isK=e.part==='Kardio';
-  S.log.exercises.push({id:e.id,name:e.name,part:e.part,type:isK?'k':'s',sets:isK?[]:[{r:12,w:0},{r:12,w:0},{r:12,w:0},{r:12,w:0}],dur:0,kcal:0,amp:e.amp,bw:e.bw,met:e.met});
+  S.log.exercises.push({id:e.id,name:e.name,part:e.part,type:isK?'k':'s',sets:isK?[]:[{r:12,w:0},{r:12,w:0},{r:12,w:0},{r:12,w:0}],dur:0,kcal:0,amp:e.amp,bw:e.bw,met:e.met,bwFrac:e.bwFrac});
   rLog();
 }
 function saveLog(){
@@ -318,15 +332,70 @@ window.rSched=function(){
   h+='<div class="clbl" style="margin-bottom:0">Deo tela:</div>';
   h+='<div style="display:flex;flex-wrap:wrap;gap:6px" id="nep">';
   PARTS.forEach(function(p){h+='<button class="pchip" id="np-'+p+'" onclick="selEP(\''+p+'\')">'+p+'</button>'});
-  h+='</div><button class="btn btp" style="margin-top:0" onclick="addExList()">+ Dodaj vežbu</button></div></div>';
+  h+='</div>';
+  h+='<div class="clbl" style="margin-bottom:0">Tip vežbe:</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:6px" id="net">';
+  h+='<button class="pchip" id="nt-s" onclick="selET(\'s\')">Sa tegom</button>';
+  h+='<button class="pchip" id="nt-bw" onclick="selET(\'bw\')">Sopstvena težina</button>';
+  h+='<button class="pchip" id="nt-k" onclick="selET(\'k\')">Kardio</button>';
+  h+='</div>';
+  h+='<div id="nep-fields"></div>';
+  h+='<button class="btn btp" style="margin-top:0" onclick="addExList()">+ Dodaj vežbu</button></div></div>';
   set('s-sched',h);
   selEP('Grudi');
+  selET('s');
 }
 function selEP(p){_ep=p;document.querySelectorAll('#nep .pchip').forEach(function(b){b.classList.remove('on')});var e=el('np-'+p);if(e)e.classList.add('on');}
+
+// Info tekstovi za parametre vežbi — objašnjenje korisniku čemu služe
+var EXINFO={
+  amp:'Amplituda pokreta (u metrima) — koliko se teg/telo realno pomeri od početnog do krajnjeg položaja vežbe. Veća amplituda = veći mehanički rad = više spaljenih kalorija. Primer: čučanj ~0.55m, biceps curl ~0.35m, plank (skoro nema pokreta) ~0.10m.',
+  bwFrac:'Procenat telesne težine koji ova vežba realno pokreće. Kod vežbi gde diže celo telo (zgib, sklek) to je oko 0.60–0.70. Kod vežbi gde se pokreće samo deo tela (npr. rimska stolica gde dižeš samo noge) procenat je manji, oko 0.25–0.35. Što je veći broj, vežba "troši" više kalorija po ponavljanju.',
+  met:'MET (Metabolic Equivalent of Task) — standardna mera intenziteta kardio aktivnosti. Što je veći broj, vežba je intenzivnija i troši više kalorija po minutu. Orijentir: lagano hodanje ~3, biciklizam umereno ~7.5, trčanje ~9, intenzivan sprint ~12+.'
+};
+function exInfo(key){alert(EXINFO[key]||'');}
 function togDay(i){S.schedule[i].active=!S.schedule[i].active;save();rSched();}
 function setT(i,v){S.schedule[i].time=v;save();}
 function togPart(i,p){var ps=S.schedule[i].parts,ix=ps.indexOf(p);if(ix>=0)ps.splice(ix,1);else ps.push(p);save();rSched();}
-function addExList(){var n=el('nei').value.trim();if(!n)return;S.exercises.push({id:'c'+Date.now(),name:n,part:_ep});el('nei').value='';save();rSched();toast('Vežba dodana');}
+
+var _et='s'; // tip nove custom vežbe: s=sa tegom, bw=sopstvena tezina, k=kardio
+function selET(t){
+  _et=t;
+  document.querySelectorAll('#net .pchip').forEach(function(b){b.classList.remove('on')});
+  var e=el('nt-'+t);if(e)e.classList.add('on');
+  var h='';
+  if(t==='s'){
+    h+='<div class="clbl" style="margin-bottom:0;display:flex;align-items:center;gap:6px">Amplituda pokreta (m) <button onclick="exInfo(\'amp\')" style="width:auto;background:var(--bg3);border:1px solid var(--bg4,#333);color:var(--tx3);border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;padding:0">?</button></div>';
+    h+='<input type="number" id="nei-amp" step="0.05" min="0" placeholder="npr. 0.40" value="0.40"/>';
+  }else if(t==='bw'){
+    h+='<div class="clbl" style="margin-bottom:0;display:flex;align-items:center;gap:6px">Amplituda pokreta (m) <button onclick="exInfo(\'amp\')" style="width:auto;background:var(--bg3);border:1px solid var(--bg4,#333);color:var(--tx3);border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;padding:0">?</button></div>';
+    h+='<input type="number" id="nei-amp" step="0.05" min="0" placeholder="npr. 0.40" value="0.40"/>';
+    h+='<div class="clbl" style="margin-bottom:0;display:flex;align-items:center;gap:6px">Koeficijent telesne težine <button onclick="exInfo(\'bwFrac\')" style="width:auto;background:var(--bg3);border:1px solid var(--bg4,#333);color:var(--tx3);border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;padding:0">?</button></div>';
+    h+='<input type="number" id="nei-bwfrac" step="0.05" min="0" max="1" placeholder="npr. 0.65" value="0.65"/>';
+  }else if(t==='k'){
+    h+='<div class="clbl" style="margin-bottom:0;display:flex;align-items:center;gap:6px">MET vrednost <button onclick="exInfo(\'met\')" style="width:auto;background:var(--bg3);border:1px solid var(--bg4,#333);color:var(--tx3);border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;padding:0">?</button></div>';
+    h+='<input type="number" id="nei-met" step="0.5" min="0" placeholder="npr. 8.0" value="8.0"/>';
+  }
+  set('nep-fields',h);
+}
+function addExList(){
+  var n=el('nei').value.trim();if(!n)return;
+  var ex={id:'c'+Date.now(),name:n,part:_ep};
+  if(_et==='bw'){
+    ex.bw=true;
+    ex.amp=parseFloat(el('nei-amp').value)||0.40;
+    ex.bwFrac=parseFloat(el('nei-bwfrac').value);
+    if(isNaN(ex.bwFrac))ex.bwFrac=0.65;
+  }else if(_et==='k'){
+    ex.met=parseFloat(el('nei-met').value);
+    if(isNaN(ex.met))ex.met=8;
+  }else{
+    ex.bw=false;
+    ex.amp=parseFloat(el('nei-amp').value)||0.40;
+  }
+  S.exercises.push(ex);
+  el('nei').value='';save();rSched();toast('Vežba dodana');
+}
 function rmExList(i){if(confirm('Obrisati "'+S.exercises[i].name+'"?')){S.exercises.splice(i,1);save();rSched();}}
 
 // ===== HISTORY =====
